@@ -28,16 +28,18 @@ from colorama import Fore
 colorama.init(autoreset=True)
 
 
-def token_expired() -> bool:
+def token_expired(path: str = None) -> bool:
     """
-        Check if the creds have expired
-        returns:
-            bool: True if expired, False if not
+    Check if the creds have expired
+    :param path: File path or None to use default
+    returns:
+        bool: True if expired, False if not
     """
     try:
-        # Get path using os, it's in ./classes/auth.json
-        path = os.path.dirname(os.path.abspath(__file__))
-        path = os.path.join(path, "auth.json")
+        if path is None:
+            # Get path using os, it's in ./classes/auth.json
+            path = os.path.dirname(os.path.abspath(__file__))
+            path = os.path.join(path, "auth.json")
 
         with open(path, 'r') as f:
             creds = json.load(f)
@@ -52,16 +54,18 @@ def token_expired() -> bool:
         return True
 
 
-def get_access_token() -> Tuple[str or None, str or None]:
+def get_access_token(path: str = None) -> Tuple[str or None, str or None]:
     """
-        Get the access token
-        returns:
-            str: The access token
+    Get the access token
+    :param path: File path or None to use default
+    returns:
+        Tuple: [access_token, expires_at]
     """
     try:
-        # Get path using os, it's in ./Classes/auth.json
-        path = os.path.dirname(os.path.abspath(__file__))
-        path = os.path.join(path, "auth.json")
+        if path is None:
+            # Get path using os, it's in ./classes/auth.json
+            path = os.path.dirname(os.path.abspath(__file__))
+            path = os.path.join(path, "auth.json")
 
         with open(path, 'r') as f:
             creds = json.load(f)
@@ -71,10 +75,14 @@ def get_access_token() -> Tuple[str or None, str or None]:
 
 
 class Auth:
-    def __init__(self, email_address: str, password: str, proxy: str = None):
+    def __init__(self, email_address: str, password: str, proxy: str = None, token_path: str = None, cf_clearance: str = None, cf_bm: str = None, user_agent: str = None):
         self.email_address = email_address
         self.password = password
         self.proxy = proxy
+        self.token_path = token_path
+        self.cf_clearance = cf_clearance
+        self.cf_bm = cf_bm
+        self.user_agent = user_agent
         self.__session = tls_client.Session(
             client_identifier="chrome_105"
         )
@@ -118,10 +126,11 @@ class Auth:
         headers = {
             "Host": "ask.openai.com",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
+            'User-Agent': self.user_agent or 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
             "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
             "Accept-Encoding": "gzip, deflate, br",
             "Connection": "keep-alive",
+            "Cookie": f"cf_clearance={self.cf_clearance};__cf_bm={self.cf_bm}",
         }
         print(f"{Fore.GREEN}[OpenAI][1] {Fore.WHITE}Making request to {url}")
 
@@ -143,10 +152,11 @@ class Auth:
             "Host": "ask.openai.com",
             "Accept": "*/*",
             "Connection": "keep-alive",
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
+            'User-Agent': self.user_agent or 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
             "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
             "Referer": "https://chat.openai.com/auth/login",
             "Accept-Encoding": "gzip, deflate, br",
+            "Cookie": f"cf_clearance={self.cf_clearance};__cf_bm={self.cf_bm}",
         }
         print(f"{Fore.GREEN}[OpenAI][2] {Fore.WHITE}Grabbing CSRF token from {url}")
         response = self.__session.get(url=url, headers=headers)
@@ -171,11 +181,12 @@ class Auth:
             'Origin': 'https://chat.openai.com',
             'Connection': 'keep-alive',
             'Accept': '*/*',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
+            'User-Agent': self.user_agent or 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
             'Referer': 'https://chat.openai.com/auth/login',
             'Content-Length': '100',
             'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
             'Content-Type': 'application/x-www-form-urlencoded',
+            "Cookie": f"cf_clearance={self.cf_clearance};__cf_bm={self.cf_bm}",
         }
         print(f"{Fore.GREEN}[OpenAI][3] {Fore.WHITE}Making request to {url}")
         response = self.__session.post(url=url, headers=headers, data=payload)
@@ -204,9 +215,10 @@ class Auth:
             'Host': 'auth0.openai.com',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Connection': 'keep-alive',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
+            'User-Agent': self.user_agent or 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
             'Accept-Language': 'en-US,en;q=0.9',
             'Referer': 'https://chat.openai.com/',
+            "Cookie": f"cf_clearance={self.cf_clearance};__cf_bm={self.cf_bm}",
         }
         print(f"{Fore.GREEN}[OpenAI][4] {Fore.WHITE}Making request to {url}")
         response = self.__session.get(url=url, headers=headers)
@@ -229,9 +241,10 @@ class Auth:
             'Host': 'auth0.openai.com',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Connection': 'keep-alive',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
+            'User-Agent': self.user_agent or 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
             'Accept-Language': 'en-US,en;q=0.9',
             'Referer': 'https://chat.openai.com/',
+            "Cookie": f"cf_clearance={self.cf_clearance};__cf_bm={self.cf_bm}",
         }
         print(f"{Fore.GREEN}[OpenAI][5] {Fore.WHITE}Making request to {url}")
         response = self.__session.get(url, headers=headers)
@@ -287,10 +300,11 @@ class Auth:
             'Origin': 'https://auth0.openai.com',
             'Connection': 'keep-alive',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
+            'User-Agent': self.user_agent or 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
             'Referer': f'https://auth0.openai.com/u/login/identifier?state={state}',
             'Accept-Language': 'en-US,en;q=0.9',
             'Content-Type': 'application/x-www-form-urlencoded',
+            "Cookie": f"cf_clearance={self.cf_clearance};__cf_bm={self.cf_bm}",
         }
         response = self.__session.post(url, headers=headers, data=payload)
         if response.status_code == 302:
@@ -316,10 +330,11 @@ class Auth:
             'Origin': 'https://auth0.openai.com',
             'Connection': 'keep-alive',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
+            'User-Agent': self.user_agent or 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
             'Referer': f'https://auth0.openai.com/u/login/password?state={state}',
             'Accept-Language': 'en-US,en;q=0.9',
             'Content-Type': 'application/x-www-form-urlencoded',
+            "Cookie": f"cf_clearance={self.cf_clearance};__cf_bm={self.cf_bm}",
         }
         response = self.__session.post(url, headers=headers, data=payload)
         is_302 = response.status_code == 302
@@ -340,9 +355,10 @@ class Auth:
             'Host': 'auth0.openai.com',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Connection': 'keep-alive',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
+            'User-Agent': self.user_agent or 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
             'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
             'Referer': f'https://auth0.openai.com/u/login/password?state={old_state}',
+            "Cookie": f"cf_clearance={self.cf_clearance};__cf_bm={self.cf_bm}",
         }
         response = self.__session.get(url, headers=headers, allow_redirects=True)
         is_200 = response.status_code == 200
@@ -358,7 +374,7 @@ class Auth:
                 access_token = access_token.split('"')[0]
                 print(f"{Fore.GREEN}[OpenAI][8] {Fore.WHITE}Access Token: {Fore.GREEN}{access_token}")
                 # Save access_token
-                self.save_access_token(access_token=access_token)
+                self.save_access_token(access_token=access_token, path=self.token_path)
             else:
                 print(f"{Fore.GREEN}[OpenAI][8][CRITICAL] {Fore.WHITE}Access Token: {Fore.RED}Not found"
                       f" Auth0 did not issue an access token.")
@@ -373,10 +389,11 @@ class Auth:
             "Connection": "keep-alive",
             "If-None-Match": "\"bwc9mymkdm2\"",
             "Accept": "*/*",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15",
+            "User-Agent": self.user_agent or 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
             "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
             "Referer": "https://chat.openai.com/chat",
             "Accept-Encoding": "gzip, deflate, br",
+            "Cookie": f"cf_clearance={self.cf_clearance};__cf_bm={self.cf_bm}",
         }
         response = self.__session.get(url, headers=headers)
         is_200 = response.status_code == 200
@@ -386,7 +403,7 @@ class Auth:
                 json_response = response.json()
                 access_token = json_response['accessToken']
                 print(f"{Fore.GREEN}[OpenAI][9] {Fore.WHITE}Access Token: {Fore.GREEN}{access_token}")
-                self.save_access_token(access_token=access_token)
+                self.save_access_token(access_token=access_token, path=self.token_path)
             else:
                 print(f"{Fore.GREEN}[OpenAI][9] {Fore.WHITE}Access Token: {Fore.RED}Not found, "
                       f"Please try again with a proxy (or use a new proxy if you are using one)")
@@ -395,20 +412,23 @@ class Auth:
                   f"Please try again with a proxy (or use a new proxy if you are using one)")
 
     @staticmethod
-    def save_access_token(access_token: str, expiry: int or None = None):
+    def save_access_token(access_token: str, expiry: int or None = None, path: str or None = None):
         """
         Save access_token and an hour from now on CHATGPT_ACCESS_TOKEN CHATGPT_ACCESS_TOKEN_EXPIRY environment variables
-        :param expiry:
         :param access_token:
+        :param expiry:
+        :param path: File path or None to use default
         :return:
         """
         try:
             print(f"{Fore.GREEN}[OpenAI][9] {Fore.WHITE}Saving access token...")
             expiry = expiry or int(time.time()) + 3600
 
-            # Get path using os, it's in ./classes/auth.json
-            path = os.path.dirname(os.path.abspath(__file__))
-            path = os.path.join(path, "auth.json")
+            if path is None:
+                # Get path using os, it's in ./classes/auth.json
+                path = os.path.dirname(os.path.abspath(__file__))
+                path = os.path.join(path, "auth.json")
+
             with open(path, "w") as f:
                 f.write(json.dumps({"access_token": access_token, "expires_at": expiry}))
 

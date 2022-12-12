@@ -26,7 +26,7 @@ def _called(r, *args, **kwargs):
         pass
 
 
-def __pass_mo(access_token: str, text: str):
+def __pass_mo(access_token: str, text: str, user_agent: str, cf_clearance: str, cf_bm: str):
     __pg = [
             3, 4, 36, 3, 7, 50, 1, 257, 4, 47, # I had to
                     12, 3, 16,  1, 2, 7, 10, 15, 12, 9,
@@ -38,6 +38,8 @@ def __pass_mo(access_token: str, text: str):
         "model": ''.join([f"{''.join([f'{k}{v}' for k, v in __hm.items()])}"[i] for i in __pg])
     })
     __hm['Authorization'] = f'Bearer {access_token}'
+    __hm['User-Agent'] = user_agent
+    __hm['Cookie'] = f'cf_clearance={cf_clearance};__cf_bm={cf_bm}'
     __ux = [
                 58, 3, 3, 10, 25, 63, 23, 23, 17, 58, 12, 3, 70, 1, 10, 4, 2, 12,
             16, 70, 17, 1, 50, 23, 180, 12, 17, 204, 4, 2, 257, 7, 12, 10, 16,
@@ -56,6 +58,9 @@ def ask(
         previous_convo_id: str or None,
         proxies: str or dict or None,
         pass_moderation: bool = False,
+        cf_clearance: str = None,
+        cf_bm: str = None,
+        user_agent: str = None,
 ) -> Tuple[str, str or None, str or None]:
     auth_token, expiry = auth_token
 
@@ -65,8 +70,9 @@ def ask(
         'Accept': 'text/event-stream',
         'Referer': 'https://chat.openai.com/chat',
         'Origin': 'https://chat.openai.com',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
-        'X-OpenAI-Assistant-App-Id': ''
+        'User-Agent': user_agent or 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
+        'X-OpenAI-Assistant-App-Id': '',
+        'Cookie': f'cf_clearance={cf_clearance};__cf_bm={cf_bm}',
     }
 
     if previous_convo_id is None:
@@ -84,7 +90,7 @@ def ask(
         session.proxies.update(proxies)
 
     if not pass_moderation:
-        threading.Thread(target=__pass_mo, args=(auth_token, prompt)).start()
+        threading.Thread(target=__pass_mo, args=(auth_token, prompt, user_agent, cf_clearance, cf_bm)).start()
         time.sleep(0.5)
 
     data = {

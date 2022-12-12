@@ -29,11 +29,17 @@ class Options:
         self.pass_moderation: bool = False
         self.chat_log: str or None = None
         self.id_log: str or None = None
+        self.token_path: str or None = None
+        self.cf_clearance: str or None = None
+        self.cf_bm: str or None = None
+        self.user_agent: str or None = None
 
     def __repr__(self):
         return f"<Options log={self.log} proxies={self.proxies} track={self.track} " \
                f"verify={self.verify} pass_moderation={self.pass_moderation} " \
-               f"chat_log={self.chat_log} id_log={self.id_log}>"
+               f"chat_log={self.chat_log} id_log={self.id_log} " \
+               f"token_path={self.token_path} cf_clearance={self.cf_clearance} " \
+               f"cf_bm={self.cf_bm} user_agent={self.user_agent}>"
 
 class Chat:
     def __init__(self,
@@ -108,6 +114,7 @@ class Chat:
                         "When saving a chat, file paths for chat_log and id_log cannot be empty.")
 
                 self.__chat_history = []
+
         else:
             self.options = Options()
 
@@ -139,12 +146,12 @@ class Chat:
                 raise Exceptions.PyChatGPTException("When resuming a chat, there was an issue reading id_log, make sure that it is formatted correctly.")
 
         # Check for access_token & access_token_expiry in env
-        if OpenAI.token_expired():
+        if OpenAI.token_expired(path=self.options.token_path):
             self.log(f"{Fore.RED}>> Access Token missing or expired."
                   f" {Fore.GREEN}Attempting to create them...")
             self._create_access_token()
         else:
-            access_token, expiry = OpenAI.get_access_token()
+            access_token, expiry = OpenAI.get_access_token(path=self.options.token_path)
             self.__auth_access_token = access_token
             self.__auth_access_token_expiry = expiry
 
@@ -159,11 +166,11 @@ class Chat:
                 self._create_access_token()
 
     def _create_access_token(self) -> bool:
-        openai_auth = OpenAI.Auth(email_address=self.email, password=self.password, proxy=self.options.proxies)
+        openai_auth = OpenAI.Auth(email_address=self.email, password=self.password, proxy=self.options.proxies, token_path=self.options.token_path, cf_clearance=self.options.cf_clearance, cf_bm=self.options.cf_bm, user_agent=self.options.user_agent)
         openai_auth.create_token()
 
         # If after creating the token, it's still expired, then something went wrong.
-        is_still_expired = OpenAI.token_expired()
+        is_still_expired = OpenAI.token_expired(path=self.options.token_path)
         if is_still_expired:
             self.log(f"{Fore.RED}>> Failed to create access token.")
             return False
@@ -191,7 +198,7 @@ class Chat:
             raise Exceptions.PyChatGPTException("Cannot enter a non-queue object as the response queue for threads.")
 
         # Check if the access token is expired
-        if OpenAI.token_expired():
+        if OpenAI.token_expired(path=self.options.token_path):
             self.log(f"{Fore.RED}>> Your access token is expired. {Fore.GREEN}Attempting to recreate it...")
             did_create = self._create_access_token()
             if did_create:
@@ -201,7 +208,7 @@ class Chat:
                 raise Exceptions.PyChatGPTException("Failed to recreate access token.")
 
         # Get access token
-        access_token = OpenAI.get_access_token()
+        access_token = OpenAI.get_access_token(path=self.options.token_path)
 
         # Set conversation IDs if supplied
         if previous_convo_id is not None:
@@ -213,7 +220,7 @@ class Chat:
                                                            conversation_id=self.conversation_id,
                                                            previous_convo_id=self.previous_convo_id,
                                                            proxies=self.options.proxies,
-                                                           pass_moderation=self.options.pass_moderation)
+                                                           pass_moderation=self.options.pass_moderation, cf_clearance=self.options.cf_clearance, cf_bm=self.options.cf_bm, user_agent=self.options.user_agent)
 
         if rep_queue is not None:
             rep_queue.put((prompt, answer))
@@ -259,7 +266,7 @@ class Chat:
             raise Exceptions.PyChatGPTException("Cannot enter a non-queue object as the response queue for threads.")
 
         # Check if the access token is expired
-        if OpenAI.token_expired():
+        if OpenAI.token_expired(path=self.options.token_path):
             self.log(f"{Fore.RED}>> Your access token is expired. {Fore.GREEN}Attempting to recreate it...")
             did_create = self._create_access_token()
             if did_create:
@@ -274,7 +281,7 @@ class Chat:
 
 
         # Get access token
-        access_token = OpenAI.get_access_token()
+        access_token = OpenAI.get_access_token(path=self.options.token_path)
 
         while True:
             try:

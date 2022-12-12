@@ -1,3 +1,13 @@
+# [This is a fork of rawandahmad698/PyChatGPT](https://github.com/rawandahmad698/PyChatGPT)
+
+This fork adds 4 options:
+- token_path: path to save the access_token, can be used for per-user tokens
+- user_agent: User-Agent used to grab a `cf_clearance` and `__cf_bm` cookie
+- cf_clearance: `cf_clearance` cookie value
+- cf_bm: `__cf_bm` cookie value
+
+#### On Dec 11 OpenAI added Cloudflare challenge protection. If you pass it in your browser and fetch your `cf_clearance` and `__cf_bm` cookie values, enter them along with your User-Agent as options and voila!
+
 # 🔥 PyChatGPT
 #### 😶‍🌫️ [Confirmed] OpenAI shadow-bans requests through <strong>bots/scrapers</strong>. This applies to all current scrapers/bots out there, but not with this script! 😎
 
